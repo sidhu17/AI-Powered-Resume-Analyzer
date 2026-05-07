@@ -4,7 +4,7 @@ CareerCraft is a Streamlit web application designed to help job seekers optimize
 
 ## 🌐 Live Demo
 
-[🔗 Open CareerCraft](https://careercraft-git7bqwmgypzwie2chk3fk.streamlit.app)
+[🚀 Launch CareerCraft](https://careercraft-git7bqwmgypzwie2chk3fk.streamlit.app)
 
 ## 🚀 Features
 
@@ -85,6 +85,10 @@ The development environment will be automatically configured, all dependencies w
     - Missing Skills
     - Key Strengths
     - Improvement Suggestions
+
+## 📜 License
+
+MIT License — Free to use, modify, and distribute with proper credit.
 
 ## 👨‍💻 Author
 
