@@ -39,17 +39,15 @@ if not API_KEY:
     st.error("❌ GEMINI_API_KEY not found.")
     st.stop()
 
-# Configure Gemini API
+# ─────────────────────────────────────────────────────────────
+# CONFIGURE GEMINI
+# ─────────────────────────────────────────────────────────────
 genai.configure(api_key=API_KEY)
 
-# ─────────────────────────────────────────────────────────────
-# GEMINI MODEL SETUP
-# ─────────────────────────────────────────────────────────────
 MODEL_NAME = "gemini-2.5-flash-lite"
 
 try:
     model = genai.GenerativeModel(MODEL_NAME)
-
     st.success(f"✅ Using Gemini Model: {MODEL_NAME}")
 
 except Exception as e:
@@ -60,17 +58,10 @@ except Exception as e:
 # ─────────────────────────────────────────────────────────────
 # UTILITIES
 # ─────────────────────────────────────────────────────────────
-def load_and_resize(path: str, size: Tuple[int, int]):
+def safe_show_image(path: str, width=None):
     try:
         img = Image.open(path)
-        return img.resize(size)
-    except Exception:
-        return None
-
-def safe_show_image(path: str):
-    try:
-        img = Image.open(path)
-        st.image(img, use_container_width=True)
+        st.image(img, width=width)
     except Exception:
         pass
 
@@ -107,8 +98,8 @@ def get_gemini_response(prompt: str):
         response = model.generate_content(
             prompt,
             generation_config={
-                "temperature": 0.6,
-                "max_output_tokens": 1200,
+                "temperature": 0.4,
+                "max_output_tokens": 500,
             }
         )
 
@@ -120,9 +111,9 @@ def get_gemini_response(prompt: str):
         return "Gemini request failed."
 
 # ─────────────────────────────────────────────────────────────
-# UI — HEADER
+# HEADER SECTION
 # ─────────────────────────────────────────────────────────────
-intro_col, img_col = st.columns([3, 1])
+intro_col, img_col = st.columns([3, 1], vertical_alignment="center")
 
 with intro_col:
     st.title("🎯 CareerCraft")
@@ -136,28 +127,30 @@ with intro_col:
     """)
 
 with img_col:
-    safe_show_image("images/icon_dashboard.png")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    safe_show_image("images/icon_dashboard.png", width=350)
 
 st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────
-# FEATURES
+# FEATURES SECTION
 # ─────────────────────────────────────────────────────────────
-offer_img, offer_text = st.columns([1, 2])
+offer_img, offer_text = st.columns([1, 2], vertical_alignment="center")
 
 with offer_img:
-    safe_show_image("images/offerings.png")
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    safe_show_image("images/offerings.png", width=400)
 
 with offer_text:
     st.subheader("🚀 Features")
 
     st.markdown("""
-    - ATS Resume Analysis
-    - Skill Gap Detection
-    - Keyword Optimization
-    - Resume Matching Score
-    - AI Generated Suggestions
-    - Personalized Profile Summary
+    - ATS Resume Analysis  
+    - Skill Gap Detection  
+    - Keyword Optimization  
+    - Resume Matching Score  
+    - AI Generated Suggestions  
+    - Personalized Profile Summary  
     """)
 
 st.markdown("---")
@@ -165,7 +158,7 @@ st.markdown("---")
 # ─────────────────────────────────────────────────────────────
 # MAIN ATS ANALYZER
 # ─────────────────────────────────────────────────────────────
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1.8, 1.2], vertical_alignment="center")
 
 with col1:
     st.subheader("📂 Analyze Your Resume")
@@ -197,27 +190,24 @@ with col1:
                     st.warning("Could not extract text from PDF.")
 
                 else:
-                    jd_text = truncate(job_desc, 7000)
-                    cv_text = truncate(resume_text, 9000)
+                    jd_text = truncate(job_desc, 2500)
+                    cv_text = truncate(resume_text, 3500)
 
                     prompt = f"""
                     You are an ATS Resume Analyzer.
 
-                    Compare the resume with the job description.
+                    Analyze the resume against the job description.
 
-                    Provide:
-
+                    Return:
                     1. ATS Match Percentage
-                    2. Missing Keywords
-                    3. Strengths
-                    4. Weaknesses
-                    5. Improvement Suggestions
-                    6. Professional Summary
+                    2. Missing Skills
+                    3. Key Strengths
+                    4. Improvement Suggestions
 
-                    JOB DESCRIPTION:
+                    Job Description:
                     {jd_text}
 
-                    RESUME:
+                    Resume:
                     {cv_text}
                     """
 
@@ -227,17 +217,19 @@ with col1:
                     st.write(response)
 
 with col2:
-    safe_show_image("images/analysis.png")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    safe_show_image("images/analysis.png", width=500)
 
 st.markdown("---")
 
 # ─────────────────────────────────────────────────────────────
 # FAQ SECTION
 # ─────────────────────────────────────────────────────────────
-faq_col1, faq_col2 = st.columns(2)
+faq_col1, faq_col2 = st.columns([1.8, 1.2], vertical_alignment="center")
 
 with faq_col1:
-    safe_show_image("images/faq.png")
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    safe_show_image("images/faq.png", width=720)
 
 with faq_col2:
     st.subheader("❓ FAQ")
