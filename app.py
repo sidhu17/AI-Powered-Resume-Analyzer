@@ -158,9 +158,7 @@ st.markdown("---")
 # ─────────────────────────────────────────────────────────────
 # MAIN ATS ANALYZER
 # ─────────────────────────────────────────────────────────────
-col1, col2 = st.columns([1.8, 1.2], vertical_alignment="center")
 
-with col1:
     st.subheader("📂 Analyze Your Resume")
 
     job_desc = st.text_area(
@@ -216,9 +214,7 @@ with col1:
                     st.markdown("## 📊 Analysis Result")
                     st.write(response)
 
-with col2:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    safe_show_image("images/analysis.png", width=500)
+safe_show_image("images/analysis.png", width=500)
 
 st.markdown("---")
 
