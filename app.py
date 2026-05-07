@@ -20,7 +20,7 @@ from google.genai import types
 # ───────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
 # ───────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="CareerCraft ATS Tracker", layout="wide", page_icon="📄")
+st.set_page_config(page_title="AI-powered Resume Analyzer", layout="wide", page_icon="📄")
 
 # ───────────────────────────────────────────────────────────────────────────────
 # ENV & API CONFIG
