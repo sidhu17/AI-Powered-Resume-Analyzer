@@ -5,7 +5,7 @@ CareerCraft is a Streamlit web application designed to help job seekers optimize
 ## 🌐 Live Demo
 
 <a href="https://careercraft-git7bqwmgypzwie2chk3fk.streamlit.app" target="_blank">
-  🚀 Launch CareerCraft
+  <img src="https://img.shields.io/badge/Launch-CareerCraft-blue?style=for-the-badge">
 </a>
 
 ## 🚀 Features
