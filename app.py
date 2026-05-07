@@ -1,10 +1,3 @@
-# app.py — CareerCraft ATS Tracker (Streamlit + Google GenAI SDK)
-# - Uses the new google-genai client (GA)
-# - Reads API key from Streamlit Secrets first, then env (.env for local)
-# - Tries a list of model names (2.0 first, then 1.5 fallbacks) with a quick ping
-# - Safe PDF text extraction + prompt truncation
-# - Safe image loading (won’t crash if file missing)
-
 from typing import Tuple, Optional
 import os
 
@@ -12,231 +5,268 @@ import streamlit as st
 from dotenv import load_dotenv
 from PIL import Image
 import PyPDF2
+import google.generativeai as genai
 
-# NEW SDK
-from google import genai
-from google.genai import types
-
-# ───────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # PAGE CONFIG
-# ───────────────────────────────────────────────────────────────────────────────
-st.set_page_config(page_title="AI-powered Resume Analyzer", layout="wide", page_icon="📄")
+# ─────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="CareerCraft",
+    layout="wide",
+    page_icon="📄"
+)
 
-# ───────────────────────────────────────────────────────────────────────────────
-# ENV & API CONFIG
-# ───────────────────────────────────────────────────────────────────────────────
-load_dotenv()  # enables local development with .env
+# ─────────────────────────────────────────────────────────────
+# LOAD ENV VARIABLES
+# ─────────────────────────────────────────────────────────────
+load_dotenv()
 
-def _get_api_key() -> Optional[str]:
-    # Prefer Streamlit Secrets (Cloud), then env (local)
-    return (
-        st.secrets.get("GEMINI_API_KEY")
-        or st.secrets.get("GOOGLE_API_KEY")
-        or os.getenv("GEMINI_API_KEY")
-        or os.getenv("GOOGLE_API_KEY")
-    )
+# ─────────────────────────────────────────────────────────────
+# GET API KEY
+# ─────────────────────────────────────────────────────────────
+def get_api_key() -> Optional[str]:
+    try:
+        return (
+            st.secrets.get("GEMINI_API_KEY")
+            or os.getenv("GEMINI_API_KEY")
+        )
+    except Exception:
+        return os.getenv("GEMINI_API_KEY")
 
-API_KEY = _get_api_key()
+API_KEY = get_api_key()
+
 if not API_KEY:
-    st.error("❌ No API key found. Set `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) in Streamlit Secrets or .env")
+    st.error("❌ GEMINI_API_KEY not found.")
     st.stop()
 
-# You can omit api_key=... if you export GEMINI_API_KEY in the environment.
-client = genai.Client(api_key=API_KEY)
+# Configure Gemini API
+genai.configure(api_key=API_KEY)
 
-# ───────────────────────────────────────────────────────────────────────────────
-# MODEL INIT (prefer 2.0, then 1.5 fallbacks). We "ping" to catch NOT_FOUND early.
-# ───────────────────────────────────────────────────────────────────────────────
-PREFERRED_MODELS = [
-    "gemini-2.0-flash",     # latest (preferred)
-    "gemini-1.5-pro",       # fallback
-    "gemini-1.5-flash",     # fallback
-    "gemini-1.0-pro",       # last resort
-]
-
-def pick_working_model() -> str:
-    last_exc = None
-    for name in PREFERRED_MODELS:
-        try:
-            # Lightweight ping request
-            _ = client.models.generate_content(model=name, contents="ping")
-            return name
-        except Exception as e:
-            last_exc = e
-            continue
-    raise RuntimeError(f"No usable model. Tried: {PREFERRED_MODELS}. Last error: {last_exc}")
+# ─────────────────────────────────────────────────────────────
+# GEMINI MODEL SETUP
+# ─────────────────────────────────────────────────────────────
+MODEL_NAME = "gemini-2.5-flash-lite"
 
 try:
-    MODEL_NAME = pick_working_model()
-    st.info(f"Using model: **{MODEL_NAME}**")
+    model = genai.GenerativeModel(MODEL_NAME)
+
+    st.success(f"✅ Using Gemini Model: {MODEL_NAME}")
+
 except Exception as e:
-    st.error("❌ Could not initialize a Gemini model (model name / key / quota / region issue).")
+    st.error("❌ Failed to initialize Gemini.")
     st.exception(e)
     st.stop()
 
-# ───────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
 # UTILITIES
-# ───────────────────────────────────────────────────────────────────────────────
-def load_and_resize(path: str, size: Tuple[int, int]) -> Optional[Image.Image]:
-    """Load image from disk and resize to `size` (width, height). Return None if missing."""
+# ─────────────────────────────────────────────────────────────
+def load_and_resize(path: str, size: Tuple[int, int]):
     try:
         img = Image.open(path)
         return img.resize(size)
     except Exception:
-        st.info(f"ℹ️ Image not found or could not be loaded: `{path}`")
         return None
 
 def safe_show_image(path: str, size: Tuple[int, int]):
     img = load_and_resize(path, size)
-    if img is not None:
+
+    if img:
         st.image(img)
 
-def input_pdf_text(pdf_file) -> str:
-    """
-    Extract text from a PDF file-like object using PyPDF2.
-    Returns a concatenated string of all pages.
-    """
+def input_pdf_text(uploaded_file):
     try:
-        if hasattr(pdf_file, "read"):
-            reader = PyPDF2.PdfReader(pdf_file)
-        else:
-            with open(pdf_file, "rb") as f:
-                reader = PyPDF2.PdfReader(f)
-        texts = []
+        reader = PyPDF2.PdfReader(uploaded_file)
+
+        text = ""
+
         for page in reader.pages:
-            texts.append(page.extract_text() or "")
-        return "".join(texts)
+            extracted = page.extract_text()
+
+            if extracted:
+                text += extracted
+
+        return text
+
     except Exception as e:
-        st.error("❌ Failed to read the PDF. Ensure it is a valid, text-based PDF.")
+        st.error("❌ Error reading PDF.")
         st.exception(e)
         return ""
 
-def truncate(text: str, max_chars: int = 15000) -> str:
-    """Guard against overly long prompts (keeps app snappy and avoids size limits)."""
-    if text and len(text) > max_chars:
-        return text[:max_chars] + "\n\n[...truncated due to length...]"
+def truncate(text: str, max_chars: int):
+    if len(text) > max_chars:
+        return text[:max_chars]
+
     return text
 
-def get_gemini_response(prompt: str) -> str:
+# ─────────────────────────────────────────────────────────────
+# GEMINI RESPONSE
+# ─────────────────────────────────────────────────────────────
+def get_gemini_response(prompt: str):
     try:
-        resp = client.models.generate_content(
-            model=MODEL_NAME,
-            contents=prompt,
-            # Example config—tweak as you like or remove entirely
-            config=types.GenerateContentConfig(
-                max_output_tokens=1200,
-                temperature=0.6,
-            ),
+        response = model.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.6,
+                "max_output_tokens": 1200,
+            }
         )
-        return resp.text or "No text returned."
-    except Exception as e:
-        st.error("⚠️ Gemini request failed (often model name / quota / prompt size).")
-        st.exception(e)
-        return "Gemini request failed. See error above."
 
-# ───────────────────────────────────────────────────────────────────────────────
-# UI — INTRODUCTION
-# ───────────────────────────────────────────────────────────────────────────────
-intro_col, img_col = st.columns([3, 1], gap="large")
+        return response.text
+
+    except Exception as e:
+        st.error("⚠️ Gemini request failed.")
+        st.exception(e)
+        return "Gemini request failed."
+
+# ─────────────────────────────────────────────────────────────
+# UI — HEADER
+# ─────────────────────────────────────────────────────────────
+intro_col, img_col = st.columns([3, 1])
+
 with intro_col:
     st.title("🎯 CareerCraft")
-    st.header("ATS-Optimized Resume Analyzer")
-    st.markdown(
-        """
-        CareerCraft empowers you to optimize and track your resume
-        against any job description using Google’s Gemini AI.
-        Upload your resume, paste the job description, and instantly
-        receive a match percentage, missing keywords, and a punchy summary.
-        """
-    )
+    st.header("AI-Powered ATS Resume Analyzer")
+
+    st.markdown("""
+    CareerCraft helps job seekers optimize resumes for ATS systems.
+
+    Upload your resume and compare it against any job description
+    using Google's Gemini AI.
+    """)
+
 with img_col:
-    # uniform 200×200px icon
     safe_show_image("images/icon_dashboard.png", (200, 200))
 
 st.markdown("---")
 
-# ───────────────────────────────────────────────────────────────────────────────
-# UI — OFFERINGS
-# ───────────────────────────────────────────────────────────────────────────────
-offer_img, offer_text = st.columns([1, 2], gap="medium")
+# ─────────────────────────────────────────────────────────────
+# FEATURES
+# ─────────────────────────────────────────────────────────────
+offer_img, offer_text = st.columns([1, 2])
+
 with offer_img:
-    # uniform 180×180px offering graphic
     safe_show_image("images/offerings.png", (180, 180))
+
 with offer_text:
-    st.subheader("🚀 Wide Range of Offerings")
-    st.markdown(
-        """
-        - **ATS-Optimized Resume Analysis**  
-        - **Resume Optimization Suggestions**  
-        - **Skill & Keyword Enhancement**  
-        - **Profile Summary Generator**  
-        - **Interactive Match Dashboard**  
-        - **Downloadable Reports**  
-        """
-    )
+    st.subheader("🚀 Features")
+
+    st.markdown("""
+    - ATS Resume Analysis
+    - Skill Gap Detection
+    - Keyword Optimization
+    - Resume Matching Score
+    - AI Generated Suggestions
+    - Personalized Profile Summary
+    """)
 
 st.markdown("---")
 
-# ───────────────────────────────────────────────────────────────────────────────
-# UI — RESUME ATS TRACKING
-# ───────────────────────────────────────────────────────────────────────────────
-col1, col2 = st.columns(2, gap="large")
+# ─────────────────────────────────────────────────────────────
+# MAIN ATS ANALYZER
+# ─────────────────────────────────────────────────────────────
+col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("📂 Analyze Your Resume")
-    job_desc = st.text_area("Paste the **Job Description** here:", height=150)
-    uploaded_resume = st.file_uploader("Upload your **Resume (PDF)**:", type=["pdf"])
 
-    if st.button("🔍 Submit for Analysis"):
+    job_desc = st.text_area(
+        "Paste Job Description",
+        height=180
+    )
+
+    uploaded_resume = st.file_uploader(
+        "Upload Resume (PDF)",
+        type=["pdf"]
+    )
+
+    if st.button("🔍 Analyze Resume"):
+
         if not job_desc:
-            st.warning("Please paste a job description.")
+            st.warning("Please enter a job description.")
+
         elif not uploaded_resume:
-            st.warning("Please upload your resume PDF.")
+            st.warning("Please upload your resume.")
+
         else:
-            with st.spinner("Reading resume & calling Gemini..."):
+            with st.spinner("Analyzing Resume..."):
+
                 resume_text = input_pdf_text(uploaded_resume)
+
                 if not resume_text.strip():
-                    st.warning("Could not extract text from the PDF. Try a text-based resume PDF.")
+                    st.warning("Could not extract text from PDF.")
+
                 else:
-                    # keep prompt size within safe bounds
                     jd_text = truncate(job_desc, 7000)
                     cv_text = truncate(resume_text, 9000)
 
-                    prompt = (
-                        "You are an ATS expert. Compare the job description and resume.\n"
-                        "Return a structured, concise analysis with:\n"
-                        "1) Overall match percentage (as a number 0–100)\n"
-                        "2) Missing or weak keywords/skills (bulleted)\n"
-                        "3) A punchy 3–5 sentence profile summary tailored to the JD\n"
-                        "4) Actionable suggestions to improve alignment (bulleted)\n"
-                        "Keep the tone objective and specific.\n\n"
-                        f"--- JOB DESCRIPTION ---\n{jd_text}\n\n"
-                        f"--- RESUME ---\n{cv_text}\n"
-                    )
+                    prompt = f"""
+                    You are an ATS Resume Analyzer.
 
-                    st.markdown("### 📊 Analysis Result")
-                    st.write(get_gemini_response(prompt))
+                    Compare the resume with the job description.
+
+                    Provide:
+
+                    1. ATS Match Percentage
+                    2. Missing Keywords
+                    3. Strengths
+                    4. Weaknesses
+                    5. Improvement Suggestions
+                    6. Professional Summary
+
+                    JOB DESCRIPTION:
+                    {jd_text}
+
+                    RESUME:
+                    {cv_text}
+                    """
+
+                    response = get_gemini_response(prompt)
+
+                    st.markdown("## 📊 Analysis Result")
+                    st.write(response)
 
 with col2:
-    # uniform 240×180px analysis graphic
-    safe_show_image("images/analysis.png", (240, 180))
+    safe_show_image("images/analysis.png", (250, 180))
 
 st.markdown("---")
 
-# ───────────────────────────────────────────────────────────────────────────────
-# UI — FAQ
-# ───────────────────────────────────────────────────────────────────────────────
-faq_col1, faq_col2 = st.columns(2, gap="large")
-with faq_col2:
-    st.subheader("❓ Frequently Asked Questions")
-    st.write("**Q:** What is CareerCraft?")
-    st.write("A: A Gemini-powered ATS resume analyzer.")
-    st.write("**Q:** How many analyses can I run?")
-    st.write("A: Up to 50/day free tier, 15/minute.")
-    st.write("**Q:** Is my data secure?")
-    st.write("A: Yes, nothing is stored after you close the app.")
-    st.write("**Q:** Can I deploy my own?")
-    st.write("A: Absolutely—just fork the GitHub repo and configure secrets or `.env`.")
+# ─────────────────────────────────────────────────────────────
+# FAQ SECTION
+# ─────────────────────────────────────────────────────────────
+faq_col1, faq_col2 = st.columns(2)
+
 with faq_col1:
-    # uniform 200×200px FAQ graphic
     safe_show_image("images/faq.png", (200, 200))
+
+with faq_col2:
+    st.subheader("❓ FAQ")
+
+    st.write("### What is CareerCraft?")
+    st.write("An AI-powered ATS resume analyzer.")
+
+    st.write("### Is my data stored?")
+    st.write("No. Uploaded resumes are not stored.")
+
+    st.write("### Which AI model is used?")
+    st.write(f"Google Gemini ({MODEL_NAME})")
+
+    st.write("### Can I deploy this project?")
+    st.write("Yes. Fork the repo and deploy on Streamlit Cloud.")
+
+st.markdown("---")
+
+# ─────────────────────────────────────────────────────────────
+# FOOTER
+# ─────────────────────────────────────────────────────────────
+st.markdown(
+    """
+    <div style='text-align: center;'>
+
+    ### 👨‍💻 Developed by Siddharath Negi
+
+    CareerCraft — AI Resume Analyzer
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
