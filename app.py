@@ -265,7 +265,7 @@ st.markdown(
 
     ### 👨‍💻 Developed by Siddharath Negi
 
-    CareerCraft — AI-powered Resume Analyzer
+    CareerCraft — AI-powered ATS Resume Analyzer
 
     </div>
     """,
