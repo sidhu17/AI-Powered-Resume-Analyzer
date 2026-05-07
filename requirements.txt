@@ -1,6 +1,6 @@
 streamlit
 streamlit_extras
-google-genai>=1.0.0
+google-generativeai==0.8.5
 python-dotenv
 PyPDF2
 Pillow
