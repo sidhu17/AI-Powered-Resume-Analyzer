@@ -67,11 +67,12 @@ def load_and_resize(path: str, size: Tuple[int, int]):
     except Exception:
         return None
 
-def safe_show_image(path: str, size: Tuple[int, int]):
-    img = load_and_resize(path, size)
-
-    if img:
-        st.image(img)
+def safe_show_image(path: str):
+    try:
+        img = Image.open(path)
+        st.image(img, use_container_width=True)
+    except Exception:
+        pass
 
 def input_pdf_text(uploaded_file):
     try:
@@ -135,7 +136,7 @@ with intro_col:
     """)
 
 with img_col:
-    safe_show_image("images/icon_dashboard.png", (200, 200))
+    safe_show_image("images/icon_dashboard.png")
 
 st.markdown("---")
 
@@ -145,7 +146,7 @@ st.markdown("---")
 offer_img, offer_text = st.columns([1, 2])
 
 with offer_img:
-    safe_show_image("images/offerings.png", (180, 180))
+    safe_show_image("images/offerings.png")
 
 with offer_text:
     st.subheader("🚀 Features")
@@ -226,7 +227,7 @@ with col1:
                     st.write(response)
 
 with col2:
-    safe_show_image("images/analysis.png", (250, 180))
+    safe_show_image("images/analysis.png")
 
 st.markdown("---")
 
@@ -236,7 +237,7 @@ st.markdown("---")
 faq_col1, faq_col2 = st.columns(2)
 
 with faq_col1:
-    safe_show_image("images/faq.png", (200, 200))
+    safe_show_image("images/faq.png")
 
 with faq_col2:
     st.subheader("❓ FAQ")
@@ -264,7 +265,7 @@ st.markdown(
 
     ### 👨‍💻 Developed by Siddharath Negi
 
-    CareerCraft — AI Resume Analyzer
+    CareerCraft — AI-powered Resume Analyzer
 
     </div>
     """,
