@@ -159,7 +159,7 @@ st.markdown("---")
 # MAIN ATS ANALYZER
 # ─────────────────────────────────────────────────────────────
 
-col1, col2 = st.columns([1.9, 1], gap="large")
+col1, col2 = st.columns([1.9, 1])
 
 with col1:
 
@@ -179,7 +179,7 @@ with col1:
 
 with col2:
 
-    st.markdown("", unsafe_allow_html=True)
+    st.markdown("&nbsp;", unsafe_allow_html=True)
 
     safe_show_image(
         "images/analysis.png",
