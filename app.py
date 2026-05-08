@@ -268,8 +268,8 @@ st.markdown("---")
 faq_col1, faq_col2 = st.columns([0.8,1.0], gap="small")
 
 with faq_col1:
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    safe_show_image("images/faq.png", width=450)
+    st.markdown("<br>", unsafe_allow_html=True)
+    safe_show_image("images/faq.png", width=550)
 
 with faq_col2:
     st.subheader("❓ FAQ")
