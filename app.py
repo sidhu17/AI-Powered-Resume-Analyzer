@@ -99,7 +99,7 @@ def get_gemini_response(prompt: str):
             prompt,
             generation_config={
                 "temperature": 0.4,
-                "max_output_tokens": 500,
+                "max_output_tokens": 1500,
             }
         )
 
@@ -113,7 +113,7 @@ def get_gemini_response(prompt: str):
 # ─────────────────────────────────────────────────────────────
 # HEADER SECTION
 # ─────────────────────────────────────────────────────────────
-intro_col, img_col = st.columns([3, 1], vertical_alignment="center")
+intro_col, img_col = st.columns([3, 1.5], vertical_alignment="center")
 
 with intro_col:
     st.title("🎯 CareerCraft")
@@ -135,11 +135,11 @@ st.markdown("---")
 # ─────────────────────────────────────────────────────────────
 # FEATURES SECTION
 # ─────────────────────────────────────────────────────────────
-offer_img, offer_text = st.columns([1, 2], vertical_alignment="center")
+offer_img, offer_text = st.columns([1,2], vertical_alignment="center")
 
 with offer_img:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
-    safe_show_image("images/offerings.png", width=400)
+    safe_show_image("images/offerings.png", width=350)
 
 with offer_text:
     st.subheader("🚀 Features")
@@ -159,11 +159,15 @@ st.markdown("---")
 # MAIN ATS ANALYZER
 # ─────────────────────────────────────────────────────────────
 
+col1, col2 = st.columns([1.9, 1], gap="large")
+
+with col1:
+
     st.subheader("📂 Analyze Your Resume")
 
     job_desc = st.text_area(
         "Paste Job Description",
-        height=180
+        height=120
     )
 
     uploaded_resume = st.file_uploader(
@@ -171,61 +175,101 @@ st.markdown("---")
         type=["pdf"]
     )
 
-    if st.button("🔍 Analyze Resume"):
+    analyze = st.button("🔍 Analyze Resume")
 
-        if not job_desc:
-            st.warning("Please enter a job description.")
+with col2:
 
-        elif not uploaded_resume:
-            st.warning("Please upload your resume.")
+    st.markdown("", unsafe_allow_html=True)
 
-        else:
-            with st.spinner("Analyzing Resume..."):
+    safe_show_image(
+        "images/analysis.png",
+        width=450
+    )
 
-                resume_text = input_pdf_text(uploaded_resume)
+# ─────────────────────────────────────────────────────────────
+# RESULT SECTION (OUTSIDE COLUMNS)
+# ─────────────────────────────────────────────────────────────
 
-                if not resume_text.strip():
-                    st.warning("Could not extract text from PDF.")
+if analyze:
 
-                else:
-                    jd_text = truncate(job_desc, 2500)
-                    cv_text = truncate(resume_text, 3500)
+    if not job_desc:
+        st.warning("Please enter a job description.")
 
-                    prompt = f"""
-                    You are an ATS Resume Analyzer.
+    elif not uploaded_resume:
+        st.warning("Please upload your resume.")
 
-                    Analyze the resume against the job description.
+    else:
 
-                    Return:
-                    1. ATS Match Percentage
-                    2. Missing Skills
-                    3. Key Strengths
-                    4. Improvement Suggestions
+        with st.spinner("Analyzing Resume..."):
 
-                    Job Description:
-                    {jd_text}
+            resume_text = input_pdf_text(uploaded_resume)
 
-                    Resume:
-                    {cv_text}
-                    """
+            if not resume_text.strip():
+                st.warning("Could not extract text from PDF.")
 
-                    response = get_gemini_response(prompt)
+            else:
 
-                    st.markdown("## 📊 Analysis Result")
-                    st.write(response)
+                jd_text = truncate(job_desc, 2500)
+                cv_text = truncate(resume_text, 3500)
 
-safe_show_image("images/analysis.png", width=500)
+                prompt = f"""
+                You are an ATS Resume Analyzer.
 
+                Analyze the resume against the job description.
+
+                Return the response in clean markdown format.
+
+                Use:
+                - bullet points
+                - short paragraphs
+
+                Sections:
+                1. ATS Match Percentage
+                2. Missing Skills
+                3. Key Strengths
+                4. Improvement Suggestions
+
+                Job Description:
+                {jd_text}
+
+                Resume:
+                {cv_text}
+                """
+
+                response = get_gemini_response(prompt)
+
+# FULL WIDTH RESPONSE
 st.markdown("---")
 
+if analyze and job_desc and uploaded_resume:
+
+    st.markdown("## 📊 ATS Resume Analyzer Report")
+    formatted_response = response.replace("</div>", "")
+    st.markdown(
+        f"""
+        <div style="
+            width:100%;
+            line-height:1.9;
+            font-size:16px;
+            overflow-wrap:break-word;
+            word-wrap:break-word;
+            white-space:normal;
+        ">
+        {response}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+st.markdown("<br><br><br>", unsafe_allow_html=True)
+st.markdown("---")
 # ─────────────────────────────────────────────────────────────
 # FAQ SECTION
 # ─────────────────────────────────────────────────────────────
-faq_col1, faq_col2 = st.columns([1.8, 1.2], vertical_alignment="center")
+faq_col1, faq_col2 = st.columns([0.8,1.0], gap="small")
 
 with faq_col1:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    safe_show_image("images/faq.png", width=720)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    safe_show_image("images/faq.png", width=450)
 
 with faq_col2:
     st.subheader("❓ FAQ")
