@@ -117,7 +117,7 @@ intro_col, img_col = st.columns([3, 1.5], vertical_alignment="center")
 
 with intro_col:
     st.title("🎯 CareerCraft")
-    st.header("AI-Powered ATS Resume Analyzer")
+    st.header("AI-Powered Resume Analyzer")
 
     st.markdown("""
     CareerCraft helps job seekers optimize resumes for ATS systems.
